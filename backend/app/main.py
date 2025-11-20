@@ -1,0 +1,274 @@
+from __future__ import annotations
+
+from typing import Optional, List, Dict
+
+from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi.middleware.cors import CORSMiddleware
+
+from .schemas import (
+  ChatSessionCreateResponse,
+  ChatMessageRequest,
+  ChatMessageResponse,
+  ContentItem,
+  ContentListResponse,
+  ContentItemCreate,
+  ContentType,
+  ContentStatus,
+  AuditRequest,
+  AuditResponse,
+  EstimatorRequest,
+  EstimatorResponse,
+)
+from .chat_engine import chat_engine
+from .content_store import STORE
+from .audit_engine import run_audit
+from .build_estimator_engine import run_estimator
+
+# NEW: ARE-3.5 reasoning engine imports
+from .reasoning.engine import ReasoningEngine
+from .reasoning.memory import SessionMemory
+
+app = FastAPI(title="Ameotech Website Backend", version="0.2.0")
+
+# CORS: allow local dev by default
+origins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=origins,
+  allow_credentials=True,
+  allow_methods=["*"],
+  allow_headers=["*"],
+)
+
+# ----------------------
+# In-memory store for reasoning sessions (ARE-3.5)
+# ----------------------
+
+REASON_SESSIONS: Dict[str, SessionMemory] = {}
+reason_engine = ReasoningEngine()
+
+def get_reason_session(session_id: str) -> SessionMemory:
+  session = REASON_SESSIONS.get(session_id)
+  if not session:
+    session = SessionMemory(session_id=session_id)
+    REASON_SESSIONS[session_id] = session
+  return session
+
+
+# ----------------------
+# Chat endpoints (existing chat_engine – unchanged)
+# ----------------------
+
+
+@app.post("/chat/session", response_model=ChatSessionCreateResponse)
+def create_chat_session() -> ChatSessionCreateResponse:
+  session = chat_engine.create_session()
+  welcome = chat_engine.initial_welcome(session)
+  return ChatSessionCreateResponse(
+    session_id=session.id,
+    welcome=welcome.reply,
+    suggestions=welcome.suggestions,
+  )
+
+
+@app.post("/chat/message", response_model=ChatMessageResponse)
+def chat_message(payload: ChatMessageRequest) -> ChatMessageResponse:
+  try:
+    return chat_engine.handle_message(payload.session_id, payload.message)
+  except KeyError:
+    raise HTTPException(status_code=404, detail="Session not found")
+
+
+
+# ----------------------
+# Labs: Product & Engineering Audit
+# ----------------------
+
+
+@app.post("/labs/audit/run", response_model=AuditResponse)
+def labs_run_audit(payload: AuditRequest) -> AuditResponse:
+  result = run_audit(payload.dict())
+  return AuditResponse(**result)
+
+
+# ----------------------
+# Labs: Build Cost & Delivery Model Estimator
+# ----------------------
+
+
+@app.post("/labs/build-estimator/run", response_model=EstimatorResponse)
+def labs_run_build_estimator(payload: EstimatorRequest) -> EstimatorResponse:
+  result = run_estimator(payload.dict())
+  return EstimatorResponse(**result)
+
+
+# ----------------------
+# Content endpoints (public)
+# ----------------------
+
+
+@app.get("/content/case-studies", response_model=ContentListResponse)
+def list_case_studies() -> ContentListResponse:
+  items = STORE.list_items(type=ContentType.CASE_STUDY, status=ContentStatus.PUBLISHED)
+  return ContentListResponse(items=items)
+
+
+@app.get("/content/case-studies/{slug}", response_model=ContentItem)
+def get_case_study(slug: str) -> ContentItem:
+  item = STORE.get_by_slug(ContentType.CASE_STUDY, slug, status=ContentStatus.PUBLISHED)
+  if not item:
+    raise HTTPException(status_code=404, detail="Case study not found")
+  return item
+
+
+@app.get("/content/jobs", response_model=ContentListResponse)
+def list_jobs() -> ContentListResponse:
+  items = STORE.list_items(type=ContentType.JOB_POST, status=ContentStatus.PUBLISHED)
+  return ContentListResponse(items=items)
+
+
+@app.get("/content/jobs/{slug}", response_model=ContentItem)
+def get_job(slug: str) -> ContentItem:
+  item = STORE.get_by_slug(ContentType.JOB_POST, slug, status=ContentStatus.PUBLISHED)
+  if not item:
+    raise HTTPException(status_code=404, detail="Job not found")
+  return item
+
+
+# ----------------------
+# Reasoning engine endpoints (ARE-3.5)
+# ----------------------
+
+
+@app.post("/reason/chat-route")
+def reason_chat_route(payload: dict):
+  """
+  Route a chat message through the new ARE-3.5 reasoning engine (no LLM).
+  Expected payload from frontend:
+    {
+      "session_id": str,
+      "message": str,
+      "page": str,
+      "context": {...},
+      "history": [...]
+    }
+  """
+  session_id = payload.get("session_id")
+  if not session_id:
+    raise HTTPException(status_code=400, detail="session_id is required")
+
+  message = payload.get("message") or ""
+  page = payload.get("page") or "/"
+
+  session = get_reason_session(session_id)
+
+  result = reason_engine.process(
+    session=session,
+    user_raw_message=message,
+    page=page,
+  )
+
+  # SystemResponse → plain dict
+  return {
+    "session_id": result.session_id,
+    "intent": result.intent,
+    "intent_confidence": result.intent_confidence,
+    "action": result.action,
+    "action_payload": result.action_payload,
+    "bot_reply": result.bot_reply,
+    "meta": result.meta,
+  }
+
+
+@app.post("/reason/lab-next")
+def reason_lab_next(payload: dict):
+  """
+  Stub for now – kept so existing frontend calls don't break.
+  Later we can plug ARE-3.5 logic to suggest next actions based on lab results.
+  """
+  # You can read payload["lab_tool"] / payload["result"] later if needed.
+  return {
+    "action": "show_message",
+    "action_payload": {},
+    "bot_reply": "You can share these lab results with the Ameotech team, or start a conversation via the contact form.",
+  }
+
+
+@app.post("/reason/feedback")
+def reason_feedback(payload: dict):
+  """
+  Feedback stub (thumbs up/down, action_clicked, etc.).
+  Kept for compatibility; extend to log into DB or analytics later.
+  """
+  # For now, just acknowledge.
+  return {"ok": True}
+
+
+
+# ----------------------
+# Admin content endpoints
+# ----------------------
+
+
+def get_role(x_role: Optional[str] = Header(default=None)) -> str:
+  # Very simple role header for demo; replace with real auth in production
+  return x_role or "guest"
+
+
+@app.get("/admin/content", response_model=ContentListResponse)
+def admin_list_content(role: str = Depends(get_role)) -> ContentListResponse:
+  if role not in ("admin", "content_editor"):
+    raise HTTPException(status_code=403, detail="Forbidden")
+  items = STORE.list_items()
+  return ContentListResponse(items=items)
+
+
+@app.post("/admin/content", response_model=ContentItem)
+def admin_create_content(payload: ContentItemCreate, role: str = Depends(get_role)) -> ContentItem:
+  if role not in ("admin", "content_editor"):
+    raise HTTPException(status_code=403, detail="Forbidden")
+  return STORE.create(payload)
+
+
+@app.get("/admin/content/{item_id}", response_model=ContentItem)
+def admin_get_content(item_id: str, role: str = Depends(get_role)) -> ContentItem:
+  if role not in ("admin", "content_editor"):
+    raise HTTPException(status_code=403, detail="Forbidden")
+  item = STORE.get(item_id)
+  if not item:
+    raise HTTPException(status_code=404, detail="Content item not found")
+  return item
+
+
+@app.put("/admin/content/{item_id}", response_model=ContentItem)
+def admin_update_content(item_id: str, payload: ContentItemCreate, role: str = Depends(get_role)) -> ContentItem:
+  if role not in ("admin", "content_editor"):
+    raise HTTPException(status_code=403, detail="Forbidden")
+  updated = STORE.update(item_id, payload)
+  if not updated:
+    raise HTTPException(status_code=404, detail="Content item not found")
+  return updated
+
+
+@app.post("/admin/content/{item_id}/publish", response_model=ContentItem)
+def admin_publish_content(item_id: str, role: str = Depends(get_role)) -> ContentItem:
+  if role not in ("admin", "content_editor"):
+    raise HTTPException(status_code=403, detail="Forbidden")
+  updated = STORE.set_status(item_id, ContentStatus.PUBLISHED)
+  if not updated:
+    raise HTTPException(status_code=404, detail="Content item not found")
+  return updated
+
+
+@app.post("/admin/content/{item_id}/archive", response_model=ContentItem)
+def admin_archive_content(item_id: str, role: str = Depends(get_role)) -> ContentItem:
+  if role not in ("admin", "content_editor"):
+    raise HTTPException(status_code=403, detail="Forbidden")
+  updated = STORE.set_status(item_id, ContentStatus.ARCHIVED)
+  if not updated:
+    raise HTTPException(status_code=404, detail="Content item not found")
+  return updated
