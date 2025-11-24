@@ -43,6 +43,18 @@ export const LabsLanding: React.FC = () => {
             </p>
             <p className="text-xs text-slate-400">Deterministic, explainable logic. No black boxes.</p>
           </a>
+          <a
+            href="/labs/blue-print"
+            className="block rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6 hover:border-blue-500 transition"
+          >
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-400 mb-2">Tool 03</p>
+            <h2 className="text-xl font-semibold mb-2">Build Cost &amp; Delivery Model Estimator</h2>
+            <p className="text-sm text-slate-300 mb-4">
+              Answer a few questions about scope, urgency and budget. Get a recommended engagement
+              model, rough budget band and 8–12 week delivery outline.
+            </p>
+            <p className="text-xs text-slate-400">Deterministic, explainable logic. No black boxes.</p>
+          </a>
         </div>
       </Container>
     </section>

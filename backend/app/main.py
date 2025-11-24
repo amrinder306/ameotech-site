@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from .schemas import (
   ChatSessionCreateResponse,
@@ -23,6 +24,9 @@ from .chat_engine import chat_engine
 from .content_store import STORE
 from .audit_engine import run_audit
 from .build_estimator_engine import run_estimator
+
+# NEW: Architecture Blueprint Tool
+from .labs.architecture_blueprint_engine import run_architecture_blueprint
 
 # NEW: ARE-3.5 reasoning engine imports
 from .reasoning.engine import ReasoningEngine
@@ -104,6 +108,80 @@ def labs_run_audit(payload: AuditRequest) -> AuditResponse:
 def labs_run_build_estimator(payload: EstimatorRequest) -> EstimatorResponse:
   result = run_estimator(payload.dict())
   return EstimatorResponse(**result)
+
+
+# ----------------------
+# Labs: Architecture Blueprint Tool
+# ----------------------
+
+
+class ArchitectureBlueprintRequest(BaseModel):
+  # Step 1 – Basic product
+  product_type: Optional[str] = "saas"  # saas / mobile_app / ecommerce / internal_tool / marketplace
+  expected_users: str                   # <1k / 1k-10k / 10k-100k / 100k-1M / 1M+
+  traffic_pattern: str                  # steady / bursty / seasonal / unpredictable
+
+  # Step 2 – Data & load
+  data_size: str                        # <5GB / 5-50GB / 50-500GB / 500GB-5TB / 5TB+
+  data_type: str                        # transactional / analytics-heavy / logs & telemetry / media files
+  concurrency: str                      # <10 / 10-100 / 100-500 / 500-2000 / 2000+
+
+  # Step 3 – Features
+  realtime: str                         # none / basic_realtime / heavy_realtime
+  multi_tenancy: str                    # no / soft_multi_tenant / hard_multi_tenant
+  integrations: str                     # few / many / mission_critical
+
+  # Step 4 – Constraints
+  compliance: str                       # none / gdpr / hipaa / soc2 / fintech
+  deployment: str                       # cloud / on_prem / hybrid
+  uptime: str                           # 99% / 99.5% / 99.9% / 99.99%
+
+  # Optional free-text + SEO hint
+  description: Optional[str] = None
+  seo_needed: Optional[bool] = False
+
+
+class ArchitectureRiskItem(BaseModel):
+  area: str
+  title: str
+  detail: str
+
+
+class ArchitectureInfraConfig(BaseModel):
+  compute: str
+  database: str
+  caching: Optional[str] = ""
+  queueing: Optional[str] = ""
+  observability: Optional[str] = ""
+  deployment_model: Optional[str] = ""
+
+
+class ArchitectureOverview(BaseModel):
+  tier: str
+  label: str
+  overall_score: int
+  description: str
+
+
+class ArchitectureBlueprintResponse(BaseModel):
+  tier: str
+  overview: ArchitectureOverview
+  scores: Dict[str, int]
+  backend_stack: List[str]
+  frontend_stack: List[str]
+  infra: ArchitectureInfraConfig
+  risks: List[ArchitectureRiskItem]
+  roadmap: List[str]
+  cost_band: str
+
+
+@app.post("/labs/architecture-blueprint/run", response_model=ArchitectureBlueprintResponse)
+def labs_run_architecture_blueprint(payload: ArchitectureBlueprintRequest) -> ArchitectureBlueprintResponse:
+  """
+  Run the Architecture Blueprint engine and return a structured recommendation.
+  """
+  result = run_architecture_blueprint(payload.dict())
+  return ArchitectureBlueprintResponse(**result)
 
 
 # ----------------------

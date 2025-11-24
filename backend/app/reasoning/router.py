@@ -79,6 +79,37 @@ def route_message(state: str, intent: str, confidence: float, session, analysis:
                 action_payload={},
             )
 
+        # --- COMPANY INFO INSIDE PROJECT FLOW ---
+        company_markers = [
+            "about ameotech",
+            "more about ameotech",
+            "tell me more about ameotech",
+            "tell me more about you",
+            "what is ameotech",
+            "who are you",
+            "what do you do",
+            "what does ameotech do",
+            "what does your company do",
+            "about your company",
+            "your services",
+            "what services you offer",
+            "what kind of work you do",
+            "what kind of work do you do",
+        ]
+        if any(m in clean for m in company_markers):
+            return ActionObject(
+                action="show_message",
+                bot_reply=(
+                    "Ameotech is an applied engineering partner. We build pricing engines, forecasting models, "
+                    "data platforms and automation for SaaS, retail, fintech and enterprise teams.\n\n"
+                    "Most engagements start either as a discovery sprint to de-risk architecture and scope, "
+                    "or as a focused build around a pricing engine, data platform or AI feature.\n\n"
+                    "For your project specifically, we can first lock a sensible tech stack, then sketch a "
+                    "budget band and delivery model that fits your timelines."
+                ),
+                action_payload={"link": "/case-studies"},
+            )
+
         # Cost / budget / price / estimate → suggest estimator
         cost_markers = [
             "budget", "how much", "cost", "price", "pricing",
@@ -95,23 +126,110 @@ def route_message(state: str, intent: str, confidence: float, session, analysis:
                 action_payload={"lab_tool": "build_estimator"},
             )
 
-        # Tech markers → give tech guidance instead of looping
-        tech_markers = [
-            ".net", "dotnet", "react", "vite", "typescript", "javascript",
-            "node", "next.js", "nextjs", "django", "python", "stack",
-            "frontend", "front-end", "backend", "back-end",
+        # --- GENERIC 'WHAT DO YOU SUGGEST / RECOMMEND' INSIDE PROJECT ---
+        suggest_markers = [
+            "what you suggest",
+            "what do you suggest",
+            "what would you suggest",
+            "what do you recommend",
+            "what would you recommend",
+            "what stack do you suggest",
+            "what stack do you recommend",
         ]
-        if any(m in clean for m in tech_markers):
+        if any(m in clean for m in suggest_markers):
             return ActionObject(
                 action="show_message",
                 bot_reply=(
-                    ".NET for the backend and React with Vite on the frontend is a solid setup for modern web/SaaS products.\n\n"
-                    "A typical structure we use is:\n"
+                    "For most B2B and SaaS-style products, we usually recommend:\n"
                     "- .NET 8 Web API for the backend\n"
-                    "- PostgreSQL or SQL Server as the main database\n"
-                    "- React + Vite + TypeScript for the frontend\n"
-                    "- Tailwind CSS for UI components\n\n"
-                    "We can fine-tune this once we know more about scale, integrations and any AI features you have in mind."
+                    "- PostgreSQL or SQL Server as the primary database\n"
+                    "- React with Vite or Next.js and TypeScript on the frontend\n"
+                    "- Tailwind CSS for the UI layer\n\n"
+                    "This gives a strong ecosystem, good performance and fast iteration. "
+                    "If you already have a preferred stack, we can work with that too — the main thing is matching it "
+                    "to your team and roadmap.\n\n"
+                    "If you’d like, share the stack you have in mind and your rough timelines, and we can confirm "
+                    "whether to keep it as-is or adjust parts of it."
+                ),
+                action_payload={},
+            )
+
+        # Tech markers → give tech guidance instead of looping (generic handling)
+        tech_markers = [
+            # generic tech words
+            "stack", "framework", "language", "frontend", "front-end",
+            "backend", "back-end", "architecture", "tech stack", "technology",
+            # common stacks / tools we often see
+            ".net", "dotnet", "react", "vite", "typescript", "javascript",
+            "node", "next.js", "nextjs", "django", "python", "java",
+            "spring", "angular", "vue", "svelte", "rust", "go ", "golang",
+            "flutter", "react native", "react-native", "kotlin", "swift",
+            "laravel", "rails", "ruby on rails", "wordpress", "drupal",
+            "nuxt", "remix", "sveltekit", "capacitor", "ionic", "strapi",
+        ]
+
+        if any(m in clean for m in tech_markers):
+            # Is the user comparing/challenging stacks?
+            is_comparison = (
+                "why not" in clean
+                or "my tech stack" in clean
+                or "instead of" in clean
+                or "vs " in clean
+                or "versus" in clean
+                or "better than" in clean
+            )
+
+            mentions_next = "next.js" in clean or "nextjs" in clean
+            mentions_react = "react" in clean
+
+            if is_comparison:
+                # Comparative, but generic enough for any stack
+                return ActionObject(
+                    action="show_message",
+                    bot_reply=(
+                        "The stack you mentioned can also work — the choice usually depends on a few things:\n"
+                        "- how quickly you need to ship\n"
+                        "- your team’s experience\n"
+                        "- performance and scale expectations\n"
+                        "- SEO / SSR needs and integrations\n\n"
+                        "At Ameotech we often use .NET for the backend with a React-based frontend "
+                        "(Vite or Next.js) because it gives fast iteration and a strong ecosystem, "
+                        "but we’re comfortable working with your preferred stack as long as it fits the problem.\n\n"
+                        "If you share a bit more about expected scale, SEO needs and integrations, "
+                        "we can suggest whether to stick with your current choice or adjust parts of it."
+                    ),
+                    action_payload={},
+                )
+
+            # First-time tailored recommendation if they mention React/Next
+            if mentions_react or mentions_next:
+                return ActionObject(
+                    action="show_message",
+                    bot_reply=(
+                        "React with either Vite or Next.js is a solid base for modern web/SaaS products.\n\n"
+                        "A typical setup we use is:\n"
+                        "- .NET 8 Web API for the backend\n"
+                        "- PostgreSQL or SQL Server as the main database\n"
+                        "- React + Vite or Next.js with TypeScript on the frontend\n"
+                        "- Tailwind CSS for UI components\n\n"
+                        "We can fine-tune this once we know more about scale, SEO requirements, "
+                        "and any AI features you have in mind."
+                    ),
+                    action_payload={},
+                )
+
+            # Generic tech guidance (covers Flutter, Rust, Svelte, Go, etc. without knowing them all)
+            return ActionObject(
+                action="show_message",
+                bot_reply=(
+                    "The stack you’re considering can work — the key is matching it to your team and roadmap.\n\n"
+                    "When we help choose a stack, we look at:\n"
+                    "- what your team is comfortable with today\n"
+                    "- how quickly you need to ship the first version\n"
+                    "- expected traffic and performance constraints\n"
+                    "- ecosystem and library support for your use-cases\n\n"
+                    "If you share the stack you have in mind and your rough timelines, "
+                    "we can suggest whether to keep it as-is or adjust parts of it."
                 ),
                 action_payload={},
             )
@@ -173,7 +291,7 @@ def route_message(state: str, intent: str, confidence: float, session, analysis:
 
         # shaping stage or anything beyond → keep it practical
         # Avoid repeating the exact same line endlessly
-        if session.last_action == "show_message":
+        if getattr(session, "last_action", None) == "show_message":
             return ActionObject(
                 action="show_message",
                 bot_reply=(
@@ -204,7 +322,7 @@ def route_message(state: str, intent: str, confidence: float, session, analysis:
                 action_payload={},
             )
 
-        if not session.goal:
+        if not getattr(session, "goal", None):
             return ActionObject(
                 action="show_message",
                 bot_reply=(
@@ -249,7 +367,7 @@ def route_message(state: str, intent: str, confidence: float, session, analysis:
 
     # 7. Unknown → clarifiers (multi-step) using topic_hint
     if state == "unknown":
-        loops = session.clarifier_loops
+        loops = getattr(session, "clarifier_loops", 0)
 
         # If we have a topic hint, use a targeted clarifier first
         if topic_hint == "project_like" and loops <= 2:

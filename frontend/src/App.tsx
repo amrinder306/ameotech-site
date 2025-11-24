@@ -14,6 +14,7 @@ import { AdminChatPage } from './admin/AdminChatPage';
 import { AdminContentPage } from './admin/AdminContentPage';
 import { AiToolsPage } from './admin/AiToolsPage';
 import { AdminContentEditor } from './admin/AdminContentEditor';
+import ArchitectureBlueprintPage from './labs/ArchitectureBlueprintPage';
 
 const App: React.FC = () => {
   return (
@@ -56,7 +57,14 @@ const App: React.FC = () => {
     </PageShell>
   }
 />
-
+<Route
+  path="/labs/blue-print"
+  element={
+    <PageShell>
+      <ArchitectureBlueprintPage />
+    </PageShell>
+  }
+/>
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="chat" element={<AdminChatPage />} />
         <Route path="ai-tools" element={<AiToolsPage />} />
