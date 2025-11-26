@@ -23,7 +23,8 @@ const steps = [
 
 export const Process: React.FC = () => {
   return (
-    <section id="process" className="py-24 bg-white">
+    <section id="process" className="py-24 bg-white dark:bg-slate-900">
+
       <Container>
         <SectionHeader title="How We Work" />
         <div className="space-y-8">
@@ -36,7 +37,7 @@ export const Process: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-2xl font-bold mb-2">{step.title}</h3>
-                <p className="text-gray-600">{step.desc}</p>
+                <p className="text-slate-600 dark:text-slate-300">{step.desc}</p>
               </div>
             </article>
           ))}

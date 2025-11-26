@@ -1,9 +1,13 @@
+const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "${import.meta.env.VITE_API_BASE}/?" : "");
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "${import.meta.env.VITE_API_BASE}/?" : "");
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { PageShell } from '../components/layout/PageShell';
 import { Container } from '../components/ui/Container';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE ?? '${import.meta.env.VITE_API_BASE}/?';
 
 
 type JobMeta = {
@@ -58,7 +62,7 @@ export const JobDetail: React.FC = () => {
               <header className="mb-6">
                 <h1 className="text-3xl md:text-4xl font-bold mb-3">{job.title}</h1>
                 {job.excerpt && (
-                  <p className="text-gray-600 text-sm mb-3">{job.excerpt}</p>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm mb-3">{job.excerpt}</p>
                 )}
                 {job.meta && (
                   <div className="flex flex-wrap gap-3 text-xs text-gray-500">

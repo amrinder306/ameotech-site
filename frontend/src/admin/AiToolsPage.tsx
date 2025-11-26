@@ -169,7 +169,7 @@ export const AiToolsPage: React.FC = () => {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">AI Tools</h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             Helper utilities to work with Claude, analyze HTML, and generate tags/metadata for Ameotech content.
           </p>
         </div>
@@ -178,7 +178,7 @@ export const AiToolsPage: React.FC = () => {
       <section className="border border-gray-200 rounded-lg p-4 bg-white">
         <h2 className="font-semibold text-sm mb-3">Content Context</h2>
         <div className="flex flex-col md:flex-row gap-4">
-          <label className="text-xs font-medium text-gray-700">
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-200">
             Content Type
             <select
               value={kind}
@@ -189,7 +189,7 @@ export const AiToolsPage: React.FC = () => {
               <option value="job_post">Job Post</option>
             </select>
           </label>
-          <label className="text-xs font-medium text-gray-700 flex-1">
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-200 flex-1">
             Title / Role
             <input
               type="text"
@@ -270,7 +270,7 @@ export const AiToolsPage: React.FC = () => {
         {seoFindings.length > 0 && (
           <div className="mt-3 text-xs">
             <h3 className="font-semibold mb-1">SEO Findings</h3>
-            <ul className="list-disc ml-4 space-y-1 text-gray-700">
+            <ul className="list-disc ml-4 space-y-1 text-slate-700 dark:text-slate-200">
               {seoFindings.map((f, i) => (
                 <li key={i}>{f}</li>
               ))}
@@ -281,7 +281,7 @@ export const AiToolsPage: React.FC = () => {
         {tagSuggestions.length > 0 && (
           <div className="mt-3 text-xs">
             <h3 className="font-semibold mb-1">Suggested Tags</h3>
-            <p className="text-gray-700">{tagSuggestions.join(', ')}</p>
+            <p className="text-slate-700 dark:text-slate-200">{tagSuggestions.join(', ')}</p>
           </div>
         )}
 

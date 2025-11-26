@@ -1,8 +1,12 @@
+const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "${import.meta.env.VITE_API_BASE}/?" : "");
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "${import.meta.env.VITE_API_BASE}/?" : "");
+
 import React, { useEffect, useState, FormEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAdminRole } from './AdminRoleContext';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE ?? '${import.meta.env.VITE_API_BASE}/?';
 
 type ContentType = 'case_study' | 'job_post';
 type ContentStatus = 'draft' | 'published' | 'archived';
@@ -483,7 +487,7 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
 
         <button
           onClick={() => navigate('/admin/content')}
-          className="text-xs text-gray-600 hover:text-gray-900 underline"
+          className="text-xs text-slate-600 dark:text-slate-300 hover:text-gray-900 underline"
         >
           ← Back to list
         </button>
@@ -495,7 +499,7 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isEdit && (
             <div className="flex gap-4">
-              <label className="text-xs font-medium text-gray-700">
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-200">
                 Content type
                 <select
                   value={type}
@@ -510,7 +514,7 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <label className="text-xs font-medium text-gray-700">
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-200">
               {titleLabel}
               <input
                 type="text"
@@ -520,7 +524,7 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
                 required
               />
             </label>
-            <label className="text-xs font-medium text-gray-700">
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-200">
               Slug
               <input
                 type="text"
@@ -534,13 +538,13 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
           </div>
 
           <div className="flex justify-between items-center">
-  <label className="text-xs font-medium text-gray-700 block">
+  <label className="text-xs font-medium text-slate-700 dark:text-slate-200 block">
     Full Detail HTML (paste full Claude-generated HTML)
 <button type="button" className="ml-2 text-xs px-2 py-1 bg-blue-200 rounded hover:bg-blue-300" onClick={() => autoSplitClaude(prompt('Paste full Claude output (with summary + details):') || '')}>Auto-Split Claude Output</button>
   </label>
   <button type="button" className="text-xs px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" onClick={() => setBody(prompt('Paste Claude HTML:') || '')}>Paste from Claude</button>
 </div>
-<label className="text-xs font-medium text-gray-700 block">
+<label className="text-xs font-medium text-slate-700 dark:text-slate-200 block">
             Short Summary HTML (paste Claude-generated summary <p>...</p>)
             <textarea
               value={excerpt}
@@ -551,13 +555,13 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
           </label>
 
           <div className="flex justify-between items-center">
-  <label className="text-xs font-medium text-gray-700 block">
+  <label className="text-xs font-medium text-slate-700 dark:text-slate-200 block">
     Full Detail HTML (paste full Claude-generated HTML)
 <button type="button" className="ml-2 text-xs px-2 py-1 bg-blue-200 rounded hover:bg-blue-300" onClick={() => autoSplitClaude(prompt('Paste full Claude output (with summary + details):') || '')}>Auto-Split Claude Output</button>
   </label>
   <button type="button" className="text-xs px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" onClick={() => setBody(prompt('Paste Claude HTML:') || '')}>Paste from Claude</button>
 </div>
-<label className="text-xs font-medium text-gray-700 block">
+<label className="text-xs font-medium text-slate-700 dark:text-slate-200 block">
             Tags (comma separated)
             <input
               type="text"
@@ -570,7 +574,7 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
 
           {type === 'job_post' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <label className="text-xs font-medium text-gray-700">
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-200">
                 Location
                 <input
                   type="text"
@@ -580,7 +584,7 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
                   className="mt-1 block w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
                 />
               </label>
-              <label className="text-xs font-medium text-gray-700">
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-200">
                 Employment Type
                 <input
                   type="text"
@@ -590,7 +594,7 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
                   className="mt-1 block w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
                 />
               </label>
-              <label className="text-xs font-medium text-gray-700">
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-200">
                 Experience Level
                 <input
                   type="text"
@@ -600,7 +604,7 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
                   className="mt-1 block w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
                 />
               </label>
-              <label className="text-xs font-medium text-gray-700">
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-200">
                 Apply Email
                 <input
                   type="email"
@@ -615,13 +619,13 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex justify-between items-center">
-  <label className="text-xs font-medium text-gray-700 block">
+  <label className="text-xs font-medium text-slate-700 dark:text-slate-200 block">
     Full Detail HTML (paste full Claude-generated HTML)
 <button type="button" className="ml-2 text-xs px-2 py-1 bg-blue-200 rounded hover:bg-blue-300" onClick={() => autoSplitClaude(prompt('Paste full Claude output (with summary + details):') || '')}>Auto-Split Claude Output</button>
   </label>
   <button type="button" className="text-xs px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" onClick={() => setBody(prompt('Paste Claude HTML:') || '')}>Paste from Claude</button>
 </div>
-<label className="text-xs font-medium text-gray-700 block">
+<label className="text-xs font-medium text-slate-700 dark:text-slate-200 block">
               Full Detail HTML (paste full Claude-generated HTML)
 <button type="button" className="ml-2 text-xs px-2 py-1 bg-blue-200 rounded hover:bg-blue-300" onClick={() => autoSplitClaude(prompt('Paste full Claude output (with summary + details):') || '')}>Auto-Split Claude Output</button>
               <textarea
@@ -632,7 +636,7 @@ This is for job title: "${title || '[[ADD JOB TITLE HERE]]'}".`;
               />
             </label>
             <div>
-              <p className="text-xs font-semibold text-gray-700 mb-1">
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
                 Preview (rendered HTML)
               </p>
               <div className="border border-gray-200 rounded-md p-3 h-full overflow-auto bg-white">

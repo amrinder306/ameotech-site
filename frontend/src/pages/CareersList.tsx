@@ -1,11 +1,11 @@
+const API_BASE = import.meta.env.VITE_API_BASE ??
+(import.meta.env.DEV ? 'http://localhost:8000' : '');
+
 import React, { useEffect, useState } from 'react';
 import { PageShell } from '../components/layout/PageShell';
 import { Container } from '../components/ui/Container';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Link } from 'react-router-dom';
-
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
-
 
 type JobMeta = {
   location?: string;
@@ -63,7 +63,7 @@ export const CareersList: React.FC = () => {
                     </Link>
                   </h2>
                   {job.excerpt && (
-                    <p className="text-sm text-gray-600">{job.excerpt}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{job.excerpt}</p>
                   )}
                   {job.meta && (
                     <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">

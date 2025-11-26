@@ -51,7 +51,8 @@ const pods = [
 
 export const Services: React.FC = () => {
   return (
-    <section id="services" className="py-24 bg-white">
+    <section id="services" className="py-24 bg-white dark:bg-slate-900">
+
       <Container>
         <SectionHeader
           title="Services & Engineering Pods"
@@ -61,12 +62,12 @@ export const Services: React.FC = () => {
           {pods.map((pod) => (
             <article
               key={pod.title}
-              className="p-8 bg-gray-50 rounded-xl border border-gray-200 flex flex-col justify-between"
+              className="p-8 bg-gray-50 rounded-xl border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/60 flex flex-col justify-between"
             >
               <div>
                 <h3 className="text-2xl font-bold mb-3">{pod.title}</h3>
-                <p className="text-gray-600 mb-4">{pod.description}</p>
-                <ul className="space-y-2 text-sm text-gray-700 mb-6">
+                <p className="text-slate-600 dark:text-slate-300 mb-4">{pod.description}</p>
+                <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-200 mb-6">
                   {pod.bullets.map((item) => (
                     <li key={item}>✓ {item}</li>
                   ))}

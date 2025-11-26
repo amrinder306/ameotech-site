@@ -4,12 +4,14 @@ import { Button } from '../components/ui/Button';
 
 export const Hero: React.FC = () => {
   return (
-    <header className="bg-gradient-to-br from-gray-50 to-gray-100 py-24">
+    <header className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 py-24">
+
+
       <Container className="max-w-4xl text-center">
         <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
           Applied AI Engineering for Enterprise Scale
         </h1>
-        <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto">
           We build production-grade AI systems. Pricing optimization. Forecasting. Intelligent automation.
           Architecture-first, founder-led, deployed at scale.
         </p>

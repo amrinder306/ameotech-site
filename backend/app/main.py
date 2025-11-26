@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends, Header,BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -31,7 +31,12 @@ from .labs.architecture_blueprint_engine import run_architecture_blueprint
 # NEW: ARE-3.5 reasoning engine imports
 from .reasoning.engine import ReasoningEngine
 from .reasoning.memory import SessionMemory
+from .labs.ai_readiness_engine import run_ai_readiness
 
+import os
+import httpx
+
+from .auth import router as AuthRouter
 app = FastAPI(title="Ameotech Website Backend", version="0.2.0")
 
 # CORS: allow local dev by default
@@ -51,7 +56,7 @@ app.add_middleware(
 # ----------------------
 # In-memory store for reasoning sessions (ARE-3.5)
 # ----------------------
-
+app.include_router(AuthRouter)
 REASON_SESSIONS: Dict[str, SessionMemory] = {}
 reason_engine = ReasoningEngine()
 
@@ -62,6 +67,29 @@ def get_reason_session(session_id: str) -> SessionMemory:
     REASON_SESSIONS[session_id] = session
   return session
 
+SALES_WEBHOOK_URL = os.getenv("SALES_WEBHOOK_URL")
+
+
+async def _post_sales_webhook(payload: dict):
+  if not SALES_WEBHOOK_URL:
+    print("[SALES-NOTIFY]", payload)
+    return
+  async with httpx.AsyncClient(timeout=5) as client:
+    try:
+      await client.post(SALES_WEBHOOK_URL, json={"text": str(payload)})
+    except Exception as exc:
+      print("[SALES-NOTIFY-ERROR]", exc)
+
+
+@app.post("/internal/notify-sales")
+async def notify_sales(payload: dict, background: BackgroundTasks):
+  """
+  Lightweight hook to notify sales (Slack/email/etc) when a chat or lab
+  result escalates to "talk to human".
+  """
+  # You can enrich the payload here if needed.
+  background.add_task(_post_sales_webhook, payload)
+  return {"ok": True}
 
 # ----------------------
 # Chat endpoints (existing chat_engine – unchanged)
@@ -264,16 +292,166 @@ def reason_chat_route(payload: dict):
 
 @app.post("/reason/lab-next")
 def reason_lab_next(payload: dict):
-  """
-  Stub for now – kept so existing frontend calls don't break.
-  Later we can plug ARE-3.5 logic to suggest next actions based on lab results.
-  """
-  # You can read payload["lab_tool"] / payload["result"] later if needed.
-  return {
-    "action": "show_message",
-    "action_payload": {},
-    "bot_reply": "You can share these lab results with the Ameotech team, or start a conversation via the contact form.",
-  }
+    """
+    Deterministic “what next?” logic for Labs results.
+    """
+    lab_tool = payload.get("lab_tool") or payload.get("lab")
+    lab_result = payload.get("lab_result") or payload.get("result") or {}
+
+    next_actions = []
+    reply_lines = []
+
+    # --- AUDIT ---
+    if lab_tool == "audit":
+        scores = lab_result.get("scores", {}) or {}
+        product = scores.get("product", 0)
+        engineering = scores.get("engineering", 0)
+        data_ai = scores.get("data_ai", 0)
+
+        reply_lines.append(
+            "Here’s how we usually think about next steps after a maturity audit:"
+        )
+
+        if engineering < 60 or data_ai < 50:
+            next_actions.append(
+                {
+                    "label": "Run Architecture Blueprint",
+                    "type": "open_lab_tool",
+                    "target": "architecture_blueprint",
+                    "payload": {"lab_tool": "architecture-blueprint"},
+                }
+            )
+            reply_lines.append(
+                "- Your engineering / data scores suggest stabilising foundations first via an architecture review."
+            )
+        else:
+            next_actions.append(
+                {
+                    "label": "Run Build Estimator",
+                    "type": "open_lab_tool",
+                    "target": "build_estimator",
+                    "payload": {"lab_tool": "build-estimator"},
+                }
+            )
+            reply_lines.append(
+                "- Your base looks reasonable. Next step is shaping budget and delivery via the estimator."
+            )
+
+        next_actions.append(
+            {
+                "label": "Talk to Ameotech",
+                "type": "escalate_human",
+                "payload": {"link": "mailto:hello@ameotech.com"},
+            }
+        )
+        reply_lines.append(
+            "- If you prefer a live walkthrough, we can review this together."
+        )
+
+    # --- BUILD ESTIMATOR ---
+    elif lab_tool == "build_estimator":
+        reply_lines.append(
+            "Based on this estimator run, there are usually two paths that make sense:"
+        )
+        next_actions.append(
+            {
+                "label": "Review architecture options",
+                "type": "open_lab_tool",
+                "target": "architecture_blueprint",
+                "payload": {"lab_tool": "architecture-blueprint"},
+            }
+        )
+        next_actions.append(
+            {
+                "label": "Schedule a scoping call",
+                "type": "escalate_human",
+                "payload": {"link": "mailto:hello@ameotech.com"},
+            }
+        )
+
+    # --- ARCHITECTURE BLUEPRINT ---
+    elif lab_tool == "architecture_blueprint":
+        reply_lines.append(
+            "Architecture blueprints typically feed directly into a scoped engagement or modernisation plan."
+        )
+        next_actions.append(
+            {
+                "label": "Schedule a working session",
+                "type": "escalate_human",
+                "payload": {"link": "mailto:hello@ameotech.com"},
+            }
+        )
+
+    # --- AI READINESS ---
+    elif lab_tool == "ai_readiness":
+        scores = lab_result.get("scores", {}) or {}
+        overall = scores.get("score", 0)
+
+        reply_lines.append(
+            "Here’s how we normally interpret an AI readiness profile like this:"
+        )
+
+        if overall < 60:
+            reply_lines.append(
+                "- The right move is to strengthen architecture, data and workflows before committing to AI projects."
+            )
+            next_actions.append(
+                {
+                    "label": "Run Architecture Blueprint",
+                    "type": "open_lab_tool",
+                    "target": "architecture_blueprint",
+                    "payload": {"lab_tool": "architecture-blueprint"},
+                }
+            )
+        elif overall >= 75:
+            reply_lines.append(
+                "- You look reasonably ready for applied AI. It’s worth scoping a concrete project instead of more diagnostics."
+            )
+            next_actions.append(
+                {
+                    "label": "Run Build Estimator",
+                    "type": "open_lab_tool",
+                    "target": "build_estimator",
+                    "payload": {"lab_tool": "build-estimator"},
+                }
+            )
+        else:
+            reply_lines.append(
+                "- You’re in a mixed zone: there is potential, but also some gaps. A small, well-defined PoC or advisory sprint is usually safest."
+            )
+
+        next_actions.append(
+            {
+                "label": "Talk to Ameotech",
+                "type": "escalate_human",
+                "payload": {"link": "mailto:hello@ameotech.com"},
+            }
+        )
+
+    # --- DEFAULT ---
+    else:
+        reply_lines.append(
+            "You can share these lab results with the Ameotech team, or start a conversation via the contact form."
+        )
+        next_actions.append(
+            {
+                "label": "Contact Ameotech",
+                "type": "escalate_human",
+                "payload": {"link": "mailto:hello@ameotech.com"},
+            }
+        )
+
+    bot_reply = "\n".join(reply_lines) if reply_lines else (
+        "You can share these lab results with the Ameotech team, or start a conversation via the contact form."
+    )
+
+    return {
+        "action": "show_next_actions",
+        "action_payload": {"next_actions": next_actions},
+        "bot_reply": bot_reply,
+        "next_actions": next_actions,
+    }
+
 
 
 @app.post("/reason/feedback")
@@ -350,3 +528,12 @@ def admin_archive_content(item_id: str, role: str = Depends(get_role)) -> Conten
   if not updated:
     raise HTTPException(status_code=404, detail="Content item not found")
   return updated
+
+@app.post("/labs/ai-readiness/run")
+def run_ai_readiness_route(payload: dict):
+    """
+    AI Readiness Scan – deterministic scoring based on data, workflows, AI opportunities,
+    organisation readiness and constraints.
+    """
+    return run_ai_readiness(payload)
+

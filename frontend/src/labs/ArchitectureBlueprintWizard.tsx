@@ -1,40 +1,41 @@
-// src/pages/labs/ArchitectureBlueprintPage.tsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   ArchitectureBlueprintRequest,
   ArchitectureBlueprintResponse,
   runArchitectureBlueprint,
-} from '../api/architectureBlueprint';
+} from "../api/architectureBlueprint";
 
 const defaultForm: ArchitectureBlueprintRequest = {
-  product_type: 'saas',
-  expected_users: '1k-10k',
-  traffic_pattern: 'steady',
-  data_size: '5-50GB',
-  data_type: 'transactional',
-  concurrency: '10-100',
-  realtime: 'none',
-  multi_tenancy: 'no',
-  integrations: 'few',
-  compliance: 'none',
-  deployment: 'cloud',
-  uptime: '99.5%',
-  description: '',
+  product_type: "saas",
+  expected_users: "1k-10k",
+  traffic_pattern: "steady",
+  data_size: "5-50GB",
+  data_type: "transactional",
+  concurrency: "10-100",
+  realtime: "none",
+  multi_tenancy: "no",
+  integrations: "few",
+  compliance: "none",
+  deployment: "cloud",
+  uptime: "99.5%",
+  description: "",
   seo_needed: false,
 };
 
-const steps = ['Product', 'Data & Load', 'Features', 'Constraints'];
+const steps = ["Product", "Data & Load", "Features", "Constraints"];
 
-const ArchitectureBlueprintPage: React.FC = () => {
+export const ArchitectureBlueprintWizard: React.FC = () => {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<ArchitectureBlueprintRequest>(defaultForm);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ArchitectureBlueprintResponse | null>(null);
+  const [result, setResult] = useState<ArchitectureBlueprintResponse | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
 
   const updateField = <K extends keyof ArchitectureBlueprintRequest>(
     key: K,
-    value: ArchitectureBlueprintRequest[K],
+    value: ArchitectureBlueprintRequest[K]
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -47,14 +48,15 @@ const ArchitectureBlueprintPage: React.FC = () => {
       return;
     }
 
-    // Last step → run engine
     setLoading(true);
     try {
       const res = await runArchitectureBlueprint(form);
       setResult(res);
     } catch (e) {
       console.error(e);
-      setError('Something went wrong running the architecture blueprint. Please try again.');
+      setError(
+        "Something went wrong running the architecture blueprint. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -77,11 +79,14 @@ const ArchitectureBlueprintPage: React.FC = () => {
     if (result) return null;
 
     switch (step) {
+      // --- Step 0 ---
       case 0:
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Product basics</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                Product basics
+              </h2>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 A high-level sense of the product helps us choose a sensible architecture tier.
               </p>
@@ -93,9 +98,9 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Product type
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.product_type}
-                  onChange={(e) => updateField('product_type', e.target.value)}
+                  onChange={(e) => updateField("product_type", e.target.value)}
                 >
                   <option value="saas">SaaS / B2B product</option>
                   <option value="ecommerce">E-commerce / storefront</option>
@@ -110,9 +115,11 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Expected active users (12–18 months)
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.expected_users}
-                  onChange={(e) => updateField('expected_users', e.target.value)}
+                  onChange={(e) =>
+                    updateField("expected_users", e.target.value)
+                  }
                 >
                   <option value="<1k">&lt; 1,000 users</option>
                   <option value="1k-10k">1,000 – 10,000</option>
@@ -127,9 +134,11 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Traffic pattern
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.traffic_pattern}
-                  onChange={(e) => updateField('traffic_pattern', e.target.value)}
+                  onChange={(e) =>
+                    updateField("traffic_pattern", e.target.value)
+                  }
                 >
                   <option value="steady">Mostly steady</option>
                   <option value="seasonal">Seasonal peaks</option>
@@ -144,21 +153,24 @@ const ArchitectureBlueprintPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   placeholder="e.g. B2B SaaS for workflow automation"
-                  value={form.description ?? ''}
-                  onChange={(e) => updateField('description', e.target.value)}
+                  value={form.description ?? ""}
+                  onChange={(e) => updateField("description", e.target.value)}
                 />
               </div>
             </div>
           </div>
         );
 
+      // --- Step 1 ---
       case 1:
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Data & load</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                Data &amp; load
+              </h2>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 Rough orders of magnitude are enough — this just guides sensible defaults.
               </p>
@@ -170,9 +182,9 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Data volume (12–18 months)
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.data_size}
-                  onChange={(e) => updateField('data_size', e.target.value)}
+                  onChange={(e) => updateField("data_size", e.target.value)}
                 >
                   <option value="<5GB">&lt; 5 GB</option>
                   <option value="5-50GB">5 – 50 GB</option>
@@ -187,14 +199,20 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Primary data type
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.data_type}
-                  onChange={(e) => updateField('data_type', e.target.value)}
+                  onChange={(e) => updateField("data_type", e.target.value)}
                 >
-                  <option value="transactional">Transactional (orders, events)</option>
-                  <option value="analytics-heavy">Analytics-heavy / reporting</option>
+                  <option value="transactional">
+                    Transactional (orders, events)
+                  </option>
+                  <option value="analytics-heavy">
+                    Analytics-heavy / reporting
+                  </option>
                   <option value="logs & telemetry">Logs & telemetry</option>
-                  <option value="media files">Media (images, video, audio)</option>
+                  <option value="media files">
+                    Media (images, video, audio)
+                  </option>
                 </select>
               </div>
 
@@ -203,9 +221,9 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Typical concurrent users
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.concurrency}
-                  onChange={(e) => updateField('concurrency', e.target.value)}
+                  onChange={(e) => updateField("concurrency", e.target.value)}
                 >
                   <option value="<10">&lt; 10</option>
                   <option value="10-100">10 – 100</option>
@@ -218,11 +236,14 @@ const ArchitectureBlueprintPage: React.FC = () => {
           </div>
         );
 
+      // --- Step 2 ---
       case 2:
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Features & usage patterns</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                Features &amp; usage patterns
+              </h2>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 Things like realtime behaviour and multi-tenancy change the shape of the architecture.
               </p>
@@ -234,13 +255,17 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Realtime behaviour
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.realtime}
-                  onChange={(e) => updateField('realtime', e.target.value)}
+                  onChange={(e) => updateField("realtime", e.target.value)}
                 >
                   <option value="none">No realtime needs</option>
-                  <option value="basic_realtime">Basic realtime (notifications, small updates)</option>
-                  <option value="heavy_realtime">Heavy realtime (trading, live dashboards)</option>
+                  <option value="basic_realtime">
+                    Basic realtime (notifications, small updates)
+                  </option>
+                  <option value="heavy_realtime">
+                    Heavy realtime (trading, live dashboards)
+                  </option>
                 </select>
               </div>
 
@@ -249,13 +274,19 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Multi-tenancy
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.multi_tenancy}
-                  onChange={(e) => updateField('multi_tenancy', e.target.value)}
+                  onChange={(e) =>
+                    updateField("multi_tenancy", e.target.value)
+                  }
                 >
                   <option value="no">Single-tenant</option>
-                  <option value="soft_multi_tenant">Soft multi-tenant (logical separation)</option>
-                  <option value="hard_multi_tenant">Hard multi-tenant (per-tenant DB/infra)</option>
+                  <option value="soft_multi_tenant">
+                    Soft multi-tenant (logical separation)
+                  </option>
+                  <option value="hard_multi_tenant">
+                    Hard multi-tenant (per-tenant DB/infra)
+                  </option>
                 </select>
               </div>
 
@@ -264,25 +295,32 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Integrations
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.integrations}
-                  onChange={(e) => updateField('integrations', e.target.value)}
+                  onChange={(e) =>
+                    updateField("integrations", e.target.value)
+                  }
                 >
                   <option value="few">Few / simple integrations</option>
                   <option value="many">Many / moderate complexity</option>
-                  <option value="mission_critical">Mission-critical integrations</option>
+                  <option value="mission_critical">
+                    Mission-critical integrations
+                  </option>
                 </select>
               </div>
             </div>
           </div>
         );
 
+      // --- Step 3 ---
       case 3:
       default:
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Constraints & expectations</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                Constraints &amp; expectations
+              </h2>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 Compliance, deployment and uptime often decide whether you&apos;re Tier B, C or D.
               </p>
@@ -294,9 +332,9 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Compliance
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.compliance}
-                  onChange={(e) => updateField('compliance', e.target.value)}
+                  onChange={(e) => updateField("compliance", e.target.value)}
                 >
                   <option value="none">None / general</option>
                   <option value="gdpr">GDPR / data residency</option>
@@ -311,9 +349,9 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Deployment model
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.deployment}
-                  onChange={(e) => updateField('deployment', e.target.value)}
+                  onChange={(e) => updateField("deployment", e.target.value)}
                 >
                   <option value="cloud">Cloud (AWS / Azure / GCP)</option>
                   <option value="on_prem">On-prem</option>
@@ -326,9 +364,9 @@ const ArchitectureBlueprintPage: React.FC = () => {
                   Target uptime (prod)
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
                   value={form.uptime}
-                  onChange={(e) => updateField('uptime', e.target.value)}
+                  onChange={(e) => updateField("uptime", e.target.value)}
                 >
                   <option value="99%">~99%</option>
                   <option value="99.5%">~99.5%</option>
@@ -341,11 +379,14 @@ const ArchitectureBlueprintPage: React.FC = () => {
                 <input
                   id="seo_needed"
                   type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300"
+                  className="h-4 w-4 rounded border-slate-300 dark:border-slate-600"
                   checked={form.seo_needed ?? false}
-                  onChange={(e) => updateField('seo_needed', e.target.checked)}
+                  onChange={(e) => updateField("seo_needed", e.target.checked)}
                 />
-                <label htmlFor="seo_needed" className="text-sm text-slate-700 dark:text-slate-200">
+                <label
+                  htmlFor="seo_needed"
+                  className="text-sm text-slate-700 dark:text-slate-200"
+                >
                   SEO / content-heavy product (marketing site, content, landing pages)
                 </label>
               </div>
@@ -355,27 +396,27 @@ const ArchitectureBlueprintPage: React.FC = () => {
     }
   };
 
-  const renderScores = (scores: ArchitectureBlueprintResponse['scores']) => (
+  const renderScores = (scores: ArchitectureBlueprintResponse["scores"]) => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-      {(['load', 'data', 'features', 'risk'] as const).map((key) => (
+      {(["load", "data", "features", "risk"] as const).map((key) => (
         <div
           key={key}
-          className="rounded-xl border border-gray-200 bg-white px-3 py-3"
+          className="rounded-xl border border-slate-200 bg-white dark:bg-slate-900 px-3 py-3"
         >
-          <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-            {key === 'load'
-              ? 'Load'
-              : key === 'data'
-              ? 'Data'
-              : key === 'features'
-              ? 'Features'
-              : 'Risk'}
+          <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+            {key === "load"
+              ? "Load"
+              : key === "data"
+              ? "Data"
+              : key === "features"
+              ? "Features"
+              : "Risk"}
           </div>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               {scores[key]}
             </span>
-            <span className="text-xs text-gray-500">/100</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">/100</span>
           </div>
         </div>
       ))}
@@ -385,30 +426,45 @@ const ArchitectureBlueprintPage: React.FC = () => {
   const renderResult = () => {
     if (!result) return null;
 
-    const { overview, scores, backend_stack, frontend_stack, infra, risks, roadmap, cost_band } =
-      result;
+    const {
+      overview,
+      scores,
+      backend_stack,
+      frontend_stack,
+      infra,
+      risks,
+      roadmap,
+      cost_band,
+    } = result;
 
     return (
       <div className="space-y-8">
         {/* Tier overview */}
-        <section className="rounded-2xl border border-gray-200 bg-white px-4 py-4 md:px-6 md:py-6">
+        <section className="rounded-2xl border border-slate-200 bg-white dark:bg-slate-950 px-4 py-4 md:px-6 md:py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1">
                 <span className="text-xs font-semibold text-blue-700">
                   Architecture Tier {overview.tier}
                 </span>
-                <span className="text-[11px] text-blue-600">{overview.label}</span>
+                <span className="text-[11px] text-blue-600">
+                  {overview.label}
+                </span>
               </div>
-              <h1 className="mt-3 text-xl md:text-2xl font-semibold text-gray-900">
+              <h1 className="mt-3 text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-100">
                 {overview.description}
               </h1>
             </div>
-            <div className="shrink-0 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-right">
-              <div className="text-xs text-gray-500">Overall architecture score</div>
-              <div className="text-2xl font-semibold text-gray-900">
+            <div className="shrink-0 rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-right">
+              <div className="text-xs text-slate-500">
+                Overall architecture score
+              </div>
+              <div className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
                 {overview.overall_score}
-                <span className="text-sm text-gray-500"> / 100</span>
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  {" "}
+                  / 100
+                </span>
               </div>
               <div className="mt-1 text-xs text-slate-600 dark:text-slate-300">
                 Higher scores imply more complex / demanding systems.
@@ -421,9 +477,9 @@ const ArchitectureBlueprintPage: React.FC = () => {
 
         {/* Stack recommendation */}
         <section className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 md:px-5 md:py-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-2">
-              Backend & platform
+          <div className="rounded-2xl border border-slate-200 bg-white dark:bg-slate-950 px-4 py-4 md:px-5 md:py-5">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              Backend &amp; platform
             </h2>
             <ul className="mt-2 space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
               {backend_stack.map((item, idx) => (
@@ -435,9 +491,9 @@ const ArchitectureBlueprintPage: React.FC = () => {
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 md:px-5 md:py-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-2">
-              Frontend & client experience
+          <div className="rounded-2xl border border-slate-200 bg-white dark:bg-slate-950 px-4 py-4 md:px-5 md:py-5">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              Frontend &amp; client experience
             </h2>
             <ul className="mt-2 space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
               {frontend_stack.map((item, idx) => (
@@ -452,14 +508,14 @@ const ArchitectureBlueprintPage: React.FC = () => {
 
         {/* Infra & cost band */}
         <section className="grid gap-6 md:grid-cols-3">
-          <div className="md:col-span-2 rounded-2xl border border-gray-200 bg-white px-4 py-4 md:px-5 md:py-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-2">
+          <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-white dark:bg-slate-950 px-4 py-4 md:px-5 md:py-5">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
               Infrastructure pattern
             </h2>
             <div className="grid gap-3 md:grid-cols-2 text-sm text-slate-700 dark:text-slate-200">
               <div>
-                <div className="text-xs font-medium text-gray-500 uppercase">
-                  Compute & deployment
+                <div className="text-xs font-medium text-slate-500 uppercase">
+                  Compute &amp; deployment
                 </div>
                 <div className="mt-1">{infra.compute}</div>
                 {infra.deployment_model && (
@@ -469,13 +525,11 @@ const ArchitectureBlueprintPage: React.FC = () => {
                 )}
               </div>
               <div>
-                <div className="text-xs font-medium text-gray-500 uppercase">
-                  Data & runtime
+                <div className="text-xs font-medium text-slate-500 uppercase">
+                  Data &amp; runtime
                 </div>
                 <div className="mt-1">{infra.database}</div>
-                {infra.caching && (
-                  <div className="mt-1">{infra.caching}</div>
-                )}
+                {infra.caching && <div className="mt-1">{infra.caching}</div>}
                 {infra.queueing && (
                   <div className="mt-1">{infra.queueing}</div>
                 )}
@@ -488,28 +542,30 @@ const ArchitectureBlueprintPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 md:px-5 md:py-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-2">
+          <div className="rounded-2xl border border-slate-200 bg-white dark:bg-slate-950 px-4 py-4 md:px-5 md:py-5">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
               Infra cost band
             </h2>
-            <p className="text-xl font-semibold text-gray-900">{result.cost_band}</p>
+            <p className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+              {cost_band}
+            </p>
             <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
-              This is a directional estimate for infrastructure only (compute, storage,
-              networking). Engineering time and third-party SaaS tools are not included.
+              Directional estimate for infrastructure only (compute, storage,
+              networking). Engineering time &amp; external SaaS tools are separate.
             </p>
           </div>
         </section>
 
         {/* Risks & roadmap */}
         <section className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 md:px-5 md:py-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-2">
-              Key risks & considerations
+          <div className="rounded-2xl border border-slate-200 bg-white dark:bg-slate-950 px-4 py-4 md:px-5 md:py-5">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              Key risks &amp; considerations
             </h2>
             {risks.length === 0 ? (
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                No major red flags detected from the inputs you provided. Most complexity
-                will come from real-world usage and organisational constraints.
+                No major red flags detected from the inputs you provided. Complexity
+                will mostly come from real-world usage and organisation.
               </p>
             ) : (
               <ul className="mt-2 space-y-3 text-sm text-slate-700 dark:text-slate-200">
@@ -518,16 +574,20 @@ const ArchitectureBlueprintPage: React.FC = () => {
                     <div className="text-xs font-semibold text-blue-600 uppercase">
                       {r.area}
                     </div>
-                    <div className="font-medium text-gray-900">{r.title}</div>
-                    <div className="text-sm text-slate-700 dark:text-slate-200 mt-0.5">{r.detail}</div>
+                    <div className="font-medium text-slate-900 dark:text-slate-100">
+                      {r.title}
+                    </div>
+                    <div className="text-sm text-slate-700 dark:text-slate-200 mt-0.5">
+                      {r.detail}
+                    </div>
                   </li>
                 ))}
               </ul>
             )}
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 md:px-5 md:py-5">
-            <h2 className="text-sm font-semibold text-gray-900 mb-2">
+          <div className="rounded-2xl border border-slate-200 bg-white dark:bg-slate-950 px-4 py-4 md:px-5 md:py-5">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
               Suggested roadmap
             </h2>
             <ol className="mt-2 list-decimal list-inside space-y-1.5 text-sm text-slate-700 dark:text-slate-200">
@@ -543,12 +603,12 @@ const ArchitectureBlueprintPage: React.FC = () => {
           <button
             type="button"
             onClick={handleReset}
-            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-gray-50"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white dark:bg-slate-950 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900"
           >
             Run again with different assumptions
           </button>
           <a
-            href="/contact"
+            href="/#contact"
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
             Share this blueprint with Ameotech
@@ -561,20 +621,7 @@ const ArchitectureBlueprintPage: React.FC = () => {
   const isLastStep = step === steps.length - 1;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 md:py-12">
-      <header className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-          Ameotech Labs
-        </p>
-        <h1 className="mt-1 text-2xl md:text-3xl font-semibold text-gray-900">
-          Architecture Blueprint Tool
-        </h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 md:text-base">
-          A short, structured assessment that turns your product assumptions into a concrete
-          architecture tier, stack and infrastructure plan — without asking for an email.
-        </p>
-      </header>
-
+    <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/80 shadow-lg p-6 md:p-8">
       {!result && (
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -583,10 +630,10 @@ const ArchitectureBlueprintPage: React.FC = () => {
                 <div
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                     idx === step
-                      ? 'bg-blue-600 text-white'
+                      ? "bg-blue-600 text-white"
                       : idx < step
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-500'
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-slate-100 text-slate-500"
                   }`}
                 >
                   {idx + 1}
@@ -594,14 +641,14 @@ const ArchitectureBlueprintPage: React.FC = () => {
                 <span
                   className={`ml-2 text-xs md:text-sm ${
                     idx === step
-                      ? 'font-semibold text-gray-900'
-                      : 'text-gray-500'
+                      ? "font-semibold text-slate-900 dark:text-slate-100"
+                      : "text-slate-500 dark:text-slate-400"
                   }`}
                 >
                   {label}
                 </span>
                 {idx < steps.length - 1 && (
-                  <div className="mx-3 h-px w-6 bg-gray-200 md:w-10" />
+                  <div className="mx-3 h-px w-6 bg-slate-200 dark:bg-slate-700 md:w-10" />
                 )}
               </div>
             ))}
@@ -609,38 +656,34 @@ const ArchitectureBlueprintPage: React.FC = () => {
         </div>
       )}
 
-      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 md:px-6 md:py-6">
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
-        {!result ? renderStep() : renderResult()}
+      {!result ? renderStep() : renderResult()}
 
-        {!result && (
-          <div className="mt-6 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={step === 0 || loading}
-              className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-40"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={loading}
-              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {loading ? 'Running...' : isLastStep ? 'Generate blueprint' : 'Next'}
-            </button>
-          </div>
-        )}
-      </div>
+      {!result && (
+        <div className="mt-6 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={step === 0 || loading}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white dark:bg-slate-950 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-40"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={loading}
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            {loading ? "Running..." : isLastStep ? "Generate blueprint" : "Next"}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
-
-export default ArchitectureBlueprintPage;

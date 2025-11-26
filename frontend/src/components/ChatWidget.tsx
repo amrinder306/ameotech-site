@@ -1,404 +1,283 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
-
-type ReasoningOption = {
-  intent: string;
-  label: string;
-};
+const API_BASE =
+  import.meta.env.VITE_API_BASE ??
+  (import.meta.env.DEV ? "http://localhost:8000" : "");
 
 type ChatMessage = {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant";
   content: string;
-  options?: ReasoningOption[]; // for show_options responses
 };
 
 type SuggestedReply = {
-  id: string;
-  text: string;
+  label?: string;
+  short_label?: string;
+  payload?: string;
 };
 
-type ReasoningMeta = {
-  segment?: string;
-  supports_handoff?: boolean;
+type NextAction = {
+  label: string;
+  type: "open_lab_tool" | "open_url" | "escalate_human" | string;
+  target?: string;
+  payload?: any;
 };
 
-type ReasoningResponse = {
-  session_id: string;
-  intent: string;
-  intent_confidence: number;
-  action: string;
-  action_payload: Record<string, any>;
-  bot_reply: string;
-  meta?: ReasoningMeta;
+type ChatResponse = {
+  reply?: string;
+  bot_reply?: string;
+  suggested_replies?: SuggestedReply[];
+  next_actions?: NextAction[];
+  intent?: string;
 };
 
-type ReasoningActionCard = {
-  id: string;
-  title: string;
-  description?: string;
-  ctaLabel: string;
-  action: string;
-  actionPayload: Record<string, any>;
-};
+const createId = () => Math.random().toString(36).slice(2);
 
-const ChatWidget: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [suggestions] = useState<SuggestedReply[]>([]); // reserved for future
+export const ChatWidget: React.FC = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: createId(),
+      role: "assistant",
+      content:
+        "Hi, I’m the Ameotech triage assistant. I can route you to the right thing: pricing engine, new build, modernisation, Labs tools or a real human.",
+    },
+  ]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [actionCard, setActionCard] = useState<ReasoningActionCard | null>(null);
+  const [suggestions, setSuggestions] = useState<SuggestedReply[]>([]);
+  const [nextActions, setNextActions] = useState<NextAction[]>([]);
+  const [sessionId] = useState(() => createId());
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  // Initialise chat session on first open
-  useEffect(() => {
-    if (!isOpen || sessionId) return;
-
-    let cancelled = false;
-
-    const initSession = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/chat/session`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            page: window.location.pathname,
-          }),
-        });
-
-        if (!res.ok) return;
-
-        const data = await res.json();
-        if (!cancelled) {
-          setSessionId(data.session_id);
-
-          // backend returns `welcome`
-          if (data.welcome) {
-            setMessages([
-              {
-                id: crypto.randomUUID(),
-                role: 'assistant',
-                content: data.welcome as string,
-              },
-            ]);
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to init chat session', e);
-      }
-    };
-
-    initSession();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, sessionId]);
-
-  // Auto-focus input when opened
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
-
-  // Scroll on new messages
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const el = containerRef.current;
-    el.scrollTop = el.scrollHeight;
-  }, [messages, actionCard]);
-
-  const handleToggle = () => {
-    setIsOpen((prev) => !prev);
+  const appendMessage = (role: ChatMessage["role"], content: string) => {
+    setMessages((prev) => [...prev, { id: createId(), role, content }]);
   };
 
-  const sendMessage = async (text: string) => {
-    if (!sessionId || !text.trim()) return;
-
-    const trimmed = text.trim();
-
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: trimmed,
-    };
-
-    // clear any previous suggestion card when user sends a new message
-    setActionCard(null);
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+  const sendToBackend = async (content: string) => {
     setLoading(true);
-
+    setSuggestions([]);
+    setNextActions([]);
     try {
-      const res = await fetch(`${API_BASE}/reason/chat-route`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const resp = await fetch(`${API_BASE}/reason/chat-route`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           session_id: sessionId,
-          message: trimmed,
-          page: window.location.pathname,
-          context: {},
-          history: messages.slice(-5).map((m) => ({
-            from: m.role === 'user' ? 'user' : 'bot',
-            text: m.content,
-          })),
+          message: content,
         }),
       });
-
-      const data: ReasoningResponse = await res.json();
-      const payload = data.action_payload ?? {};
-
-      // If the engine wants to show options, render them inline as buttons,
-      // not as a generic "Suggested next step" card.
-      if (data.action === 'show_options' && Array.isArray(payload.options)) {
-        const options: ReasoningOption[] = payload.options.map((opt: any) => ({
-          intent: String(opt.intent ?? ''),
-          label: String(opt.label ?? ''),
-        }));
-
-        const botMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: data.bot_reply,
-          options,
-        };
-
-        setMessages((prev) => [...prev, botMessage]);
-        setActionCard(null);
-        return;
+      if (!resp.ok) throw new Error("Failed to reach triage engine");
+      const data: ChatResponse = await resp.json();
+      const replyText = data.bot_reply || data.reply || "";
+      
+      if (replyText) {
+        appendMessage("assistant", replyText);
       }
-
-      // Regular assistant text message
-      const botMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: data.bot_reply,
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
-
-      // Build action card only for actions that map to a single clear CTA
-      if (data.action && data.action !== 'show_message') {
-        const title =
-          payload.title ||
-          (data.action === 'open_lab_tool'
-            ? (() => {
-                const lab = payload.lab_tool || payload.lab || 'audit';
-                if (lab === 'audit') return 'Run a quick readiness audit';
-                if (lab === 'build_estimator') return 'Estimate budget & delivery model';
-                return 'Run a Labs tool';
-              })()
-            : data.action === 'escalate_human'
-            ? 'Talk to Ameotech'
-            : 'Next step');
-
-        const description =
-          payload.description ||
-          (data.action === 'open_lab_tool'
-            ? 'We can run a short, guided flow to turn this into a concrete plan.'
-            : data.action === 'escalate_human'
-            ? 'Some questions are better handled live with an engineer or founder.'
-            : undefined);
-
-        const ctaLabel =
-          payload.ctaLabel ||
-          (data.action === 'open_lab_tool'
-            ? 'Open Labs'
-            : data.action === 'escalate_human'
-            ? 'Talk to a human'
-            : 'Continue');
-
-        setActionCard({
-          id: crypto.randomUUID(),
-          title,
-          description,
-          ctaLabel,
-          action: data.action,
-          actionPayload: payload,
-        });
-      } else {
-        setActionCard(null);
+      
+      // 1) Try using backend suggestions
+      let suggestionList = data.suggested_replies ?? [];
+      
+      // 2) If none, but this is the classic triage prompt, inject defaults
+      if (!suggestionList.length && replyText.includes("point you in the right direction")) {
+        suggestionList = [
+          { label: "Start a new project", payload: "I want to start a new project" },
+          { label: "Fix an existing system", payload: "I want to fix an existing system" },
+          { label: "Talk pricing engine", payload: "I want to discuss pricing engine" },
+          { label: "See Labs tools", payload: "Show me your Labs tools" },
+          { label: "Careers at Ameotech", payload: "I want to explore careers" },
+        ];
       }
-    } catch (err) {
-      console.error('Chat error', err);
+      
+      setSuggestions(suggestionList);
+      
+      // keep next_actions for later use when ARE starts returning them
+      if (Array.isArray(data.next_actions)) {
+        setNextActions(data.next_actions);
+      }
+      
+    } catch (err: any) {
+      appendMessage(
+        "assistant",
+        "Something went wrong on our side. You can still email hello@ameotech.com and we’ll pick it up."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleActionCardClick = () => {
-    if (!actionCard) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = input.trim();
+    if (!trimmed || loading) return;
+    appendMessage("user", trimmed);
+    setInput("");
+    await sendToBackend(trimmed);
+  };
 
-    const { action, actionPayload } = actionCard;
+  const handleSuggestionClick = async (s: SuggestedReply) => {
+    const text =
+      s.payload || s.label || s.short_label || "".trim();
+    if (!text) return;
+    appendMessage("user", text);
+    await sendToBackend(text);
+  };
 
-    // Fire-and-forget feedback
+  const handleActionClick = async (a: NextAction) => {
+    // feedback for analytics / future ARE use
     try {
-      fetch(`${API_BASE}/reason/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch(`${API_BASE}/reason/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           session_id: sessionId,
-          event: 'action_clicked',
-          action,
-          payload: {
-            ...actionPayload,
-            source: 'chat',
-          },
+          event: "next_action_clicked",
+          action: a.type,
+          payload: a.payload ?? {},
         }),
       }).catch(() => {});
-    } catch (e) {
-      console.warn('Failed to send feedback', e);
+    } catch {
+      // ignore
     }
 
-    if (action === 'open_lab_tool') {
-      const lab = actionPayload.lab_tool || actionPayload.lab || 'audit';
+    if (a.type === "open_lab_tool") {
+      const lab =
+        a.payload?.lab_tool || a.payload?.lab || a.target || "audit";
 
-      if (lab === 'audit') {
-        window.location.href = '/labs/audit';
-      } else if (lab === 'build_estimator') {
-        window.location.href = '/labs/build-estimator';
+      if (lab === "audit") {
+        window.location.href = "/labs/product-audit";
+      } else if (lab === "build_estimator") {
+        window.location.href = "/labs/build-estimator";
+      } else if (lab === "architecture_blueprint") {
+        window.location.href = "/labs/architecture-blueprint";
+      } else if (lab === "ai_readiness") {
+        window.location.href = "/labs/ai-readiness";
       } else {
-        window.location.href = '/labs';
+        window.location.href = "/labs";
       }
-    } else if (action === 'escalate_human') {
-      const href = actionPayload.link || 'mailto:hello@ameotech.com';
+      return;
+    }
+
+    if (a.type === "open_url") {
+      const url = a.payload?.url || a.target;
+      if (url) window.location.href = url;
+      return;
+    }
+
+    if (a.type === "escalate_human") {
+      try {
+        await fetch(`${API_BASE}/internal/notify-sales`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: sessionId,
+            source: "chat",
+            last_message: messages[messages.length - 1]?.content,
+            transcript: messages,
+            next_action: a,
+          }),
+        }).catch(() => {});
+      } catch {
+        // ignore
+      }
+
+      const href =
+        a.payload?.link ||
+        "mailto:hello@ameotech.com?subject=Ameotech%20chat%20escalation";
       window.location.href = href;
+      return;
     }
   };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-    sendMessage(input);
-  };
-
-  const handleOptionClick = (opt: ReasoningOption) => {
-    // When user clicks an option from show_options, treat it as their next message.
-    // For now we just send the label text; the backend rules + prototypes will interpret it.
-    if (!opt.label || loading) return;
-    sendMessage(opt.label);
-  };
-
-  if (!isOpen) {
-    return (
-      <button
-        type="button"
-        onClick={handleToggle}
-        className="fixed bottom-4 right-4 z-40 rounded-full bg-blue-600 text-white px-4 py-2 shadow-lg hover:bg-blue-700 text-sm font-semibold"
-      >
-        Chat with Ameotech
-      </button>
-    );
-  }
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 w-80 max-w-[90vw] rounded-2xl shadow-2xl border border-gray-200 bg-white flex flex-col">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
-        <div>
-          <p className="text-xs font-semibold text-gray-900">Ameotech Assistant</p>
-          <p className="text-[11px] text-gray-500">Applied AI & engineering questions</p>
+    <div className="fixed bottom-4 right-4 z-40">
+      <div className="w-80 md:w-96 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-xl flex flex-col overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              Ameotech Assistant
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Routing you to the right thing.
+            </p>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={handleToggle}
-          className="text-gray-400 hover:text-gray-700 text-lg leading-none"
-        >
-          ×
-        </button>
-      </div>
 
-      <div
-        ref={containerRef}
-        className="flex-1 px-4 py-3 space-y-3 overflow-y-auto max-h-80 bg-gray-50"
-      >
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div className="max-w-full">
+        <div className="flex-1 max-h-80 overflow-y-auto px-4 py-3 space-y-2 text-sm">
+          {messages.map((m) => (
+            <div
+              key={m.id}
+              className={`flex ${
+                m.role === "user" ? "justify-end" : "justify-start"
+              }`}
+            >
               <div
-                className={`rounded-2xl px-3 py-2 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-blue-600 text-white rounded-br-none'
-                    : 'bg-white text-gray-900 rounded-bl-none border border-gray-200'
+                className={`rounded-2xl px-3 py-2 max-w-[80%] ${
+                  m.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100"
                 }`}
               >
-                {msg.content}
+                {m.content}
               </div>
+            </div>
+          ))}
+          {loading && (
+            <p className="text-xs text-slate-400">Thinking…</p>
+          )}
+        </div>
 
-              {/* Inline options for show_options responses */}
-              {msg.options && msg.options.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {msg.options.map((opt) => (
-                    <button
-                      key={opt.intent + opt.label}
-                      type="button"
-                      onClick={() => handleOptionClick(opt)}
-                      className="inline-flex items-center px-3 py-1.5 rounded-full border border-gray-300 bg-white text-[11px] text-gray-800 hover:border-blue-500 hover:text-blue-600"
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {actionCard && (
-          <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-3 text-xs text-left">
-            <div className="text-[11px] uppercase tracking-wide text-blue-500 font-semibold mb-1">
-              Suggested step
-            </div>
-            <div className="text-sm font-semibold text-gray-900 mb-1">
-              {actionCard.title}
-            </div>
-            {actionCard.description && (
-              <div className="text-xs text-gray-700 mb-2">
-                {actionCard.description}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={handleActionCardClick}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700"
-            >
-              {actionCard.ctaLabel}
-            </button>
+        {/* Suggested replies (from ARE) */}
+        {suggestions.length > 0 && (
+          <div className="px-4 pb-2 flex flex-wrap gap-2">
+            {suggestions.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleSuggestionClick(s)}
+                className="inline-flex items-center rounded-full border border-slate-300 dark:border-slate-700 px-3 py-1 text-[11px] text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400"
+              >
+                {s.short_label || s.label || s.payload || "Choose"}
+              </button>
+            ))}
           </div>
         )}
-      </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-gray-200 px-3 py-2 bg-white">
-        <div className="flex items-center gap-2">
+        {/* Future: next_actions from ARE/Labs */}
+        {nextActions.length > 0 && (
+          <div className="px-4 pb-2 flex flex-wrap gap-2">
+            {nextActions.map((a, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleActionClick(a)}
+                className="inline-flex items-center rounded-full border border-slate-300 dark:border-slate-700 px-3 py-1 text-[11px] text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400"
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <form
+          onSubmit={handleSubmit}
+          className="border-t border-slate-200 dark:border-slate-800 px-3 py-2 flex items-center gap-2"
+        >
           <input
-            ref={inputRef}
             type="text"
+            className="flex-1 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Ask about pricing engine, AI, Labs or careers…"
             value={input}
-            disabled={loading}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about AI, pricing, delivery..."
-            className="flex-1 rounded-full border border-gray-300 px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            disabled={loading}
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="rounded-full bg-blue-600 text-white px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+            className="text-xs font-medium text-blue-600 dark:text-blue-400 disabled:opacity-40"
           >
-            {loading ? '...' : 'Send'}
+            Send
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };
-
-export default ChatWidget;

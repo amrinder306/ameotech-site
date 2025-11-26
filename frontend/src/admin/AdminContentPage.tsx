@@ -1,8 +1,12 @@
+const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "${import.meta.env.VITE_API_BASE}/?" : "");
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "${import.meta.env.VITE_API_BASE}/?" : "");
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminRole } from './AdminRoleContext';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE ?? '${import.meta.env.VITE_API_BASE}/?';
 
 type ContentItem = {
   id: string;
@@ -104,7 +108,7 @@ export const AdminContentPage: React.FC = () => {
                         ? 'bg-green-50 text-green-700 border border-green-200'
                         : item.status === 'draft'
                         ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200'
+                        : 'bg-gray-100 text-slate-600 dark:text-slate-300 border border-gray-200'
                     }`}
                   >
                     {item.status}

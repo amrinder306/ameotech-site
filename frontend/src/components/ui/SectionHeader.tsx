@@ -18,7 +18,7 @@ export const SectionHeader: React.FC<Props> = ({
     <div className={`flex flex-col gap-2 mb-8 ${alignment}`}>
       {eyebrow && <p className="text-xs font-semibold tracking-wide text-blue-600 uppercase">{eyebrow}</p>}
       <h2 className="text-3xl md:text-4xl font-bold">{title}</h2>
-      {subtitle && <p className="text-lg text-gray-600 max-w-2xl">{subtitle}</p>}
+      {subtitle && <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl">{subtitle}</p>}
     </div>
   );
 };

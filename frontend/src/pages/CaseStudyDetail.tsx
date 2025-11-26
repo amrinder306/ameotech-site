@@ -1,9 +1,13 @@
+const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "${import.meta.env.VITE_API_BASE}/?" : "");
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "${import.meta.env.VITE_API_BASE}/?" : "");
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { PageShell } from '../components/layout/PageShell';
 import { Container } from '../components/ui/Container';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE ?? '${import.meta.env.VITE_API_BASE}/?';
 
 
 type ContentItem = {
@@ -63,7 +67,7 @@ export const CaseStudyDetail: React.FC = () => {
                 )}
                 <h1 className="text-3xl md:text-4xl font-bold mb-3">{item.title}</h1>
                 {item.excerpt && (
-                  <p className="text-gray-600 text-sm mb-4">{item.excerpt}</p>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">{item.excerpt}</p>
                 )}
               </div>
               <article className="prose prose-gray max-w-none">

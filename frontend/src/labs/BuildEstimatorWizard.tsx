@@ -1,3 +1,6 @@
+const API_BASE =
+  import.meta.env.VITE_API_BASE ??
+  (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 import React, { useState } from 'react';
 
@@ -26,8 +29,6 @@ type EstimatorResult = {
   plan: string[];
   recommendations: { area: string; title: string; detail: string }[];
 };
-
-
 
 type NextAction = {
   label: string;
@@ -67,24 +68,24 @@ export const BuildEstimatorWizard: React.FC = () => {
     });
   };
 
-
   const runEstimator = async () => {
     setLoading(true);
     setError(null);
     setNextAction(null);
     try {
-      const resp = await fetch('http://localhost:8000/labs/build-estimator/run', {
+      const resp = await fetch(`${API_BASE}/labs/build-estimator/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
       if (!resp.ok) throw new Error('Failed to run estimator');
+
       const data = (await resp.json()) as EstimatorResult;
       setResult(data);
       setStep(4);
 
       try {
-        const reasonResp = await fetch('http://localhost:8000/reason/lab-next', {
+        const reasonResp = await fetch(`${API_BASE}/reason/lab-next`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -117,21 +118,24 @@ export const BuildEstimatorWizard: React.FC = () => {
     }
   };
 
+  // ✅ RESULT VIEW – clean card, same feel as Architecture Blueprint
   if (step === 4 && result) {
     return (
-      <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-        <p className="text-sm text-slate-400 mb-4">Suggested engagement model</p>
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/80 shadow-lg p-6 md:p-8 space-y-6">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          Suggested engagement model
+        </p>
 
         {nextAction && (
           <div className="mb-4 rounded-xl border border-blue-500/40 bg-blue-500/10 p-4">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-blue-300 mb-1">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-blue-400 mb-1">
               Suggested next step
             </p>
-            <p className="text-sm font-semibold text-blue-100 mb-1">
+            <p className="text-sm font-semibold text-blue-50 mb-1">
               {nextAction.label}
             </p>
             {nextAction.payload && nextAction.payload.description && (
-              <p className="text-xs text-blue-200 mb-2">
+              <p className="text-xs text-blue-100 mb-2">
                 {nextAction.payload.description}
               </p>
             )}
@@ -139,7 +143,7 @@ export const BuildEstimatorWizard: React.FC = () => {
               type="button"
               onClick={() => {
                 try {
-                  fetch('http://localhost:8000/reason/feedback', {
+                  fetch(`${API_BASE}/reason/feedback`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -153,11 +157,19 @@ export const BuildEstimatorWizard: React.FC = () => {
                     }),
                   }).catch(() => {});
                 } catch (e) {
-                  console.warn('Failed to send feedback for estimator next action', e);
+                  console.warn(
+                    'Failed to send feedback for estimator next action',
+                    e,
+                  );
                 }
 
                 if (nextAction.type === 'open_lab_tool') {
-                  const lab = (nextAction.payload && (nextAction.payload.lab_tool || nextAction.payload.lab)) || nextAction.target || 'audit';
+                  const lab =
+                    (nextAction.payload &&
+                      (nextAction.payload.lab_tool ||
+                        nextAction.payload.lab)) ||
+                    nextAction.target ||
+                    'audit';
                   if (lab === 'audit') {
                     window.location.href = '/labs/audit';
                   } else if (lab === 'build_estimator') {
@@ -180,26 +192,40 @@ export const BuildEstimatorWizard: React.FC = () => {
         )}
 
         <h2 className="text-2xl font-semibold mb-2">{result.model}</h2>
+
         <div className="grid md:grid-cols-3 gap-4 mb-6 text-sm">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">Budget band</p>
-            <p className="font-medium">{result.budget}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">
+              Budget band
+            </p>
+            <p className="font-medium text-slate-800 dark:text-slate-100">
+              {result.budget}
+            </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">Initial timeline</p>
-            <p className="font-medium">{result.timeline}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">
+              Initial timeline
+            </p>
+            <p className="font-medium text-slate-800 dark:text-slate-100">
+              {result.timeline}
+            </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">Signal</p>
-            <p className="font-medium">
-              Complexity {result.scores.complexity}/100 · Urgency {result.scores.urgency}/100
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">
+              Signals
+            </p>
+            <p className="font-medium text-slate-800 dark:text-slate-100">
+              Complexity {result.scores.complexity}/100 · Urgency{' '}
+              {result.scores.urgency}/100
             </p>
           </div>
         </div>
 
         <div className="mb-6">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">Suggested 8–12 week shape</p>
-          <ul className="list-disc list-inside text-sm text-slate-200 space-y-1">
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-2">
+            Suggested 8–12 week shape
+          </p>
+          <ul className="list-disc list-inside text-sm text-slate-700 dark:text-slate-200 space-y-1">
             {result.plan.map((line, idx) => (
               <li key={idx}>{line}</li>
             ))}
@@ -208,10 +234,17 @@ export const BuildEstimatorWizard: React.FC = () => {
 
         <div className="space-y-4">
           {result.recommendations.map((rec, idx) => (
-            <div key={idx} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">{rec.area}</p>
+            <div
+              key={idx}
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4"
+            >
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">
+                {rec.area}
+              </p>
               <p className="font-semibold mb-1">{rec.title}</p>
-              <p className="text-sm text-slate-300">{rec.detail}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                {rec.detail}
+              </p>
             </div>
           ))}
         </div>
@@ -222,7 +255,7 @@ export const BuildEstimatorWizard: React.FC = () => {
             setResult(null);
             setStep(0);
           }}
-          className="mt-6 inline-flex items-center rounded-lg border border-slate-600 px-4 py-2 text-sm hover:bg-slate-800"
+          className="mt-6 inline-flex items-center rounded-lg border border-slate-400 px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-900"
         >
           Start again
         </button>
@@ -230,21 +263,27 @@ export const BuildEstimatorWizard: React.FC = () => {
     );
   }
 
+  // ✅ WIZARD VIEW – card, not grey overlay
   return (
-    <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+    <div className="mt-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/80 shadow-lg p-6 md:p-8">
       {error && (
         <div className="mb-4 rounded border border-red-500 bg-red-950/40 px-3 py-2 text-sm text-red-200">
           {error}
         </div>
       )}
 
-      <p className="text-xs text-slate-400 mb-2">Step {step + 1} of 4</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+        Step {step + 1} of 4
+      </p>
 
       {step === 0 && (
         <div>
-          <h2 className="text-lg font-semibold mb-2">What are you trying to do?</h2>
-          <p className="text-sm text-slate-300 mb-3">
-            Pick the work that best describes what you want Ameotech to help with. You can select more than one.
+          <h2 className="text-lg font-semibold mb-2">
+            What are you trying to do?
+          </h2>
+          <p className="text-sm text-slate-700 dark:text-slate-200 mb-3">
+            Pick the work that best describes what you want Ameotech to help
+            with. You can select more than one.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
             {[
@@ -262,7 +301,7 @@ export const BuildEstimatorWizard: React.FC = () => {
                 className={`rounded-lg border px-3 py-2 text-left ${
                   form.project_types.includes(label)
                     ? 'border-emerald-400 bg-emerald-500/10'
-                    : 'border-slate-700 hover:border-slate-500'
+                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'
                 }`}
               >
                 {label}
@@ -274,7 +313,9 @@ export const BuildEstimatorWizard: React.FC = () => {
 
       {step === 1 && (
         <div>
-          <h2 className="text-lg font-semibold mb-2">How quickly do you need impact?</h2>
+          <h2 className="text-lg font-semibold mb-2">
+            How quickly do you need impact?
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
             {[
               ['4-6', 'Live in 4–6 weeks'],
@@ -285,7 +326,9 @@ export const BuildEstimatorWizard: React.FC = () => {
                 key={val}
                 onClick={() => setForm((f) => ({ ...f, urgency: val }))}
                 className={`rounded-lg border px-3 py-2 text-left ${
-                  form.urgency === val ? 'border-emerald-400 bg-emerald-500/10' : 'border-slate-700 hover:border-slate-500'
+                  form.urgency === val
+                    ? 'border-emerald-400 bg-emerald-500/10'
+                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'
                 }`}
               >
                 {label}
@@ -297,10 +340,14 @@ export const BuildEstimatorWizard: React.FC = () => {
 
       {step === 2 && (
         <div>
-          <h2 className="text-lg font-semibold mb-2">Where is your organisation today?</h2>
+          <h2 className="text-lg font-semibold mb-2">
+            Where is your organisation today?
+          </h2>
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-slate-300 mb-2">Company stage</p>
+              <p className="text-sm text-slate-700 dark:text-slate-200 mb-2">
+                Company stage
+              </p>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {[
                   ['startup', 'Early-stage startup'],
@@ -310,11 +357,13 @@ export const BuildEstimatorWizard: React.FC = () => {
                 ].map(([val, label]) => (
                   <button
                     key={val}
-                    onClick={() => setForm((f) => ({ ...f, company_stage: val }))}
+                    onClick={() =>
+                      setForm((f) => ({ ...f, company_stage: val }))
+                    }
                     className={`rounded-lg border px-3 py-2 text-left ${
                       form.company_stage === val
                         ? 'border-emerald-400 bg-emerald-500/10'
-                        : 'border-slate-700 hover:border-slate-500'
+                        : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'
                     }`}
                   >
                     {label}
@@ -324,7 +373,9 @@ export const BuildEstimatorWizard: React.FC = () => {
             </div>
 
             <div>
-              <p className="text-sm text-slate-300 mb-2">Internal team today</p>
+              <p className="text-sm text-slate-700 dark:text-slate-200 mb-2">
+                Internal team today
+              </p>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {[
                   ['none', 'No technical team'],
@@ -338,7 +389,7 @@ export const BuildEstimatorWizard: React.FC = () => {
                     className={`rounded-lg border px-3 py-2 text-left ${
                       form.team === val
                         ? 'border-emerald-400 bg-emerald-500/10'
-                        : 'border-slate-700 hover:border-slate-500'
+                        : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'
                     }`}
                   >
                     {label}
@@ -352,9 +403,12 @@ export const BuildEstimatorWizard: React.FC = () => {
 
       {step === 3 && (
         <div>
-          <h2 className="text-lg font-semibold mb-2">Budget comfort</h2>
-          <p className="text-sm text-slate-300 mb-3">
-            We&apos;re not asking for a committed budget &mdash; just where you&apos;re most comfortable today.
+          <h2 className="text-lg font-semibold mb-2">
+            Budget comfort
+          </h2>
+          <p className="text-sm text-slate-700 dark:text-slate-200 mb-3">
+            We&apos;re not asking for a committed budget &mdash; just where you&apos;re most
+            comfortable today.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
             {[
@@ -370,7 +424,7 @@ export const BuildEstimatorWizard: React.FC = () => {
                 className={`rounded-lg border px-3 py-2 text-left ${
                   form.budget === val
                     ? 'border-emerald-400 bg-emerald-500/10'
-                    : 'border-slate-700 hover:border-slate-500'
+                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'
                 }`}
               >
                 {label}
@@ -384,14 +438,14 @@ export const BuildEstimatorWizard: React.FC = () => {
         <button
           onClick={back}
           disabled={step === 0}
-          className="text-xs text-slate-400 hover:text-slate-200 disabled:opacity-40"
+          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-40"
         >
           Back
         </button>
         {step < 3 && (
           <button
             onClick={next}
-            className="inline-flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium hover:bg-emerald-400"
+            className="inline-flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400"
           >
             Next
           </button>
@@ -400,7 +454,7 @@ export const BuildEstimatorWizard: React.FC = () => {
           <button
             onClick={runEstimator}
             disabled={loading}
-            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-500 disabled:opacity-60"
+            className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60"
           >
             {loading ? 'Calculating…' : 'Get my plan'}
           </button>
